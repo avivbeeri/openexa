@@ -8,7 +8,8 @@
 typedef enum {
   EXA_HALT,
   EXA_NOOP,
-  EXA_COPY
+  EXA_COPY,
+  EXA_JUMP
 } InstructionSet;
 
 typedef enum {

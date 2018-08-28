@@ -8,7 +8,8 @@ char* opToStr(uint8_t opcode) {
     case EXA_HALT: return "HALT"; break;
     case EXA_NOOP: return "NOOP"; break;
     case EXA_COPY: return "COPY"; break;
-    default: return "UNKNONW"; break;
+    case EXA_JUMP: return "JUMP"; break;
+    default: return "UNKNOWN"; break;
   }
 }
 
@@ -24,7 +25,7 @@ bool EXA_tick(EXA* exa) {
   uint8_t byte = EXA_fetch(exa);
   uint8_t opcode = byte & 0x1F;
   uint8_t regFlags = (byte & 0xE0) >> 5;
-  printf("Decoding opcode: %s\n", opToStr(opcode));
+  printf("Decoding opcode: %s(%d)\n", opToStr(opcode), opcode);
   printf("RegFlags: %d\n", regFlags);
 
   switch (opcode) {
@@ -45,6 +46,14 @@ bool EXA_tick(EXA* exa) {
       uint8_t operand2 = READ_BYTE();
       exa->registers[operand2] = value;
 
+      break;
+    }
+    case EXA_JUMP: {
+      // JUMP L -> JUMP N
+      int16_t operand1 = READ_BYTE();
+      int16_t value = (READ_BYTE() << 8) | operand1;
+      printf("Jumping by: %d\n", value);
+      exa->ip = exa->instructions + value;
       break;
     }
     case EXA_NOOP: break;
