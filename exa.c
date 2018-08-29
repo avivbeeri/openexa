@@ -2,6 +2,74 @@
 #include <string.h>
 
 #define READ_BYTE() (*exa->ip++)
+#define BINARY_OP(operator, operatorName) \
+  do { \
+      Value value1 = NUMBER_VAL(0); \
+      Value value2 = NUMBER_VAL(0); \
+      printf(operatorName); \
+      printf(" "); \
+      uint8_t operand = READ_BYTE(); \
+      if (testFlagSet(regFlags, 1)) { \
+        value1 = NUMBER_VAL((READ_BYTE() << 8) | operand); \
+        printf("%d and ", AS_NUMBER(value1)); \
+      } else { \
+        value1 = exa->registers[operand]; \
+        printf("%s and ", regToStr(operand)); \
+      } \
+      operand = READ_BYTE(); \
+      if (testFlagSet(regFlags, 1)) { \
+        value2 = NUMBER_VAL((READ_BYTE() << 8) | operand); \
+        printf("%d to ", AS_NUMBER(value2)); \
+      } else { \
+        value2 = exa->registers[operand]; \
+        printf("%s to ", regToStr(operand)); \
+      } \
+      uint8_t operand3 = READ_BYTE(); \
+      printf("%s\n", regToStr(operand3)); \
+      exa->registers[operand3] = NUMBER_VAL(AS_NUMBER(value1) operator AS_NUMBER(value2)); \
+} while(0)
+
+#define BINARY_BOOL_OP(operator, operatorName) \
+  do { \
+      Value value1 = NUMBER_VAL(0); \
+      Value value2 = NUMBER_VAL(0); \
+      uint8_t operand = READ_BYTE(); \
+      if (testFlagSet(regFlags, 1)) { \
+        value1 = NUMBER_VAL((READ_BYTE() << 8) | operand); \
+        printf("%d ", AS_NUMBER(value1)); \
+      } else { \
+        value1 = exa->registers[operand]; \
+        printf("%s ", regToStr(operand)); \
+      } \
+      printf(operatorName); \
+      printf(" "); \
+      operand = READ_BYTE(); \
+      if (testFlagSet(regFlags, 1)) { \
+        value2 = NUMBER_VAL((READ_BYTE() << 8) | operand); \
+        printf("%d to", AS_NUMBER(value2)); \
+      } else { \
+        value2 = exa->registers[operand]; \
+        printf("%s to", regToStr(operand)); \
+      } \
+      printf("T\n"); \
+      if (value1.type == value2.type) { \
+        if (IS_NUMBER(value1))  { \
+          exa->registers[REG_T] = NUMBER_VAL((AS_NUMBER(value1) operator AS_NUMBER(value2) ? 1 : 0)); \
+        } else if (IS_TEXT(value1)) { \
+          int16_t r = strcmp(AS_TEXT(value1), AS_TEXT(value2)); \
+          switch ("operator"[0]) { \
+            case '=': exa->registers[REG_T] = NUMBER_VAL((r == 0 ? 1 : 0)); break; \
+            case '<': exa->registers[REG_T] = NUMBER_VAL((r < 0 ? 1 : 0)); break; \
+            case '>': exa->registers[REG_T] = NUMBER_VAL((r > 0 ? 1 : 0)); break; \
+            default: exa->registers[REG_T] = NUMBER_VAL(0);\
+          } \
+        } else { \
+          exa->registers[REG_T] = NUMBER_VAL(0);\
+        } \
+      } else { \
+        exa->registers[REG_T] = NUMBER_VAL(0);\
+      } \
+} while(0)
 
 bool testFlagSet(uint8_t field, uint8_t n) {
   return ((field >> n) & 0x1) == 1;
@@ -17,6 +85,9 @@ char* opToStr(uint8_t opcode) {
     case EXA_SUBI: return "SUBI"; break;
     case EXA_DIVI: return "DIVI"; break;
     case EXA_MODI: return "MODI"; break;
+    case EXA_TEST: return "TEST ="; break;
+    case EXA_TLT: return "TEST <"; break;
+    case EXA_TGT: return "TEST >"; break;
     case EXA_JUMP: return "JUMP"; break;
     default: return "UNKNOWN"; break;
   }
@@ -70,76 +141,16 @@ bool EXA_tick(EXA* exa) {
       exa->registers[operand2] = value;
       break;
     }
-    case EXA_ADDI: {
-      // ADDI R/N R/N R
-      // Are we reading a register or number (or string?)
-      Value value1 = NUMBER_VAL(0);
-      Value value2 = NUMBER_VAL(0);
-      printf("Adding ");
-      uint8_t operand = READ_BYTE();
-      if (testFlagSet(regFlags, 1)) {
-        // Literal: Number
-        value1 = NUMBER_VAL((READ_BYTE() << 8) | operand);
-        printf("%d and ", AS_NUMBER(value1));
-      } else {
-        // Register
-        value1 = exa->registers[operand];
-        printf("%s and ", regToStr(operand));
-      }
+    case EXA_ADDI: BINARY_OP(+, "Adding"); break;
+    case EXA_MULI: BINARY_OP(*, "Multiplying"); break;
+    case EXA_SUBI: BINARY_OP(-, "Subtracting"); break;
+    case EXA_DIVI: BINARY_OP(/, "Dividing"); break;
+    case EXA_MODI: BINARY_OP(%, "Modulo"); break;
 
-      operand = READ_BYTE();
-      if (testFlagSet(regFlags, 1)) {
-        // Literal: Number
-        value2 = NUMBER_VAL((READ_BYTE() << 8) | operand);
-        printf("%d to ", AS_NUMBER(value2));
-      } else {
-        // Register
-        value2 = exa->registers[operand];
-        printf("%s to ", regToStr(operand));
-      }
+    case EXA_TEST: BINARY_BOOL_OP(==, "equals"); break;
+    case EXA_TLT: BINARY_BOOL_OP(<, "less than"); break;
+    case EXA_TGT: BINARY_BOOL_OP(>, "greater than"); break;
 
-      // Always a register operand
-      uint8_t operand3 = READ_BYTE();
-      printf("%s\n", regToStr(operand3));
-      exa->registers[operand3] = NUMBER_VAL(AS_NUMBER(value1) + AS_NUMBER(value2));
-
-      break;
-    }
-    case EXA_MULI: {
-      // MULI R/N R/N R
-      // Are we reading a register or number (or string?)
-      Value value1 = NUMBER_VAL(0);
-      Value value2 = NUMBER_VAL(0);
-      printf("Multiplying ");
-      uint8_t operand = READ_BYTE();
-      if (testFlagSet(regFlags, 1)) {
-        // Literal: Number
-        value1 = NUMBER_VAL((READ_BYTE() << 8) | operand);
-        printf("%d and ", AS_NUMBER(value1));
-      } else {
-        // Register
-        value1 = exa->registers[operand];
-        printf("%s and ", regToStr(operand));
-      }
-
-      operand = READ_BYTE();
-      if (testFlagSet(regFlags, 1)) {
-        // Literal: Number
-        value2 = NUMBER_VAL((READ_BYTE() << 8) | operand);
-        printf("%d to ", AS_NUMBER(value2));
-      } else {
-        // Register
-        value2 = exa->registers[operand];
-        printf("%s to ", regToStr(operand));
-      }
-
-      // Always a register operand
-      uint8_t operand3 = READ_BYTE();
-      printf("%s\n", regToStr(operand3));
-      exa->registers[operand3] = NUMBER_VAL(AS_NUMBER(value1) * AS_NUMBER(value2));
-
-      break;
-    }
     case EXA_JUMP: {
       // JUMP L -> JUMP N
       int16_t operand1 = READ_BYTE();
@@ -186,3 +197,6 @@ void EXA_dumpState(EXA* exa) {
   printf("F: %d\n", AS_NUMBER(EXA_get(exa, REG_F)));
   printf("-------\n");
 }
+
+#undef BINARY_OP
+#undef READ_BYTE

@@ -14,6 +14,9 @@ typedef enum {
   EXA_SUBI,
   EXA_DIVI,
   EXA_MODI,
+  EXA_TEST,
+  EXA_TLT,
+  EXA_TGT,
   EXA_JUMP
 } InstructionSet;
 

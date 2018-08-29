@@ -35,24 +35,23 @@ int main() {
   exa.instructions[8] = REG_X;
   exa.instructions[9] = REG_T;
 
-  exa.instructions[10] = assembleOpcode(EXA_MULI, 7);
+  exa.instructions[10] = assembleOpcode(EXA_ADDI, 7);
   assembleAndSetNumber(&exa, 42, 11);
-  assembleAndSetNumber(&exa, 3, 13);
+  assembleAndSetNumber(&exa, 0, 13);
   exa.instructions[15] = REG_X;
-  exa.instructions[16] = assembleOpcode(EXA_ADDI, 0);
+  exa.instructions[16] = assembleOpcode(EXA_TEST, 0);
   exa.instructions[17] = REG_X;
-  exa.instructions[18] = REG_X;
-  exa.instructions[19] = REG_X;
+  exa.instructions[18] = REG_T;
 
-  exa.instructions[20] = assembleOpcode(EXA_HALT, 1);
+  exa.instructions[19] = assembleOpcode(EXA_HALT, 1);
 
   bool alive = true;
   while (alive) {
     alive = EXA_tick(&exa);
+    EXA_dumpState(&exa);
     // TODO: Handle context changes (file, memory)
   }
 
-  EXA_dumpState(&exa);
   return 0;
 }
 
