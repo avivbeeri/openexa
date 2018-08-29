@@ -17,7 +17,9 @@ typedef enum {
   EXA_TEST,
   EXA_TLT,
   EXA_TGT,
-  EXA_JUMP
+  EXA_JUMP,
+  EXA_TJMP,
+  EXA_FJMP
 } InstructionSet;
 
 typedef enum {

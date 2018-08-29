@@ -9,7 +9,7 @@
       printf(operatorName); \
       printf(" "); \
       uint8_t operand = READ_BYTE(); \
-      if (testFlagSet(regFlags, 1)) { \
+      if (testFlagSet(regFlags, 0)) { \
         value1 = NUMBER_VAL((READ_BYTE() << 8) | operand); \
         printf("%d and ", AS_NUMBER(value1)); \
       } else { \
@@ -34,7 +34,7 @@
       Value value1 = NUMBER_VAL(0); \
       Value value2 = NUMBER_VAL(0); \
       uint8_t operand = READ_BYTE(); \
-      if (testFlagSet(regFlags, 1)) { \
+      if (testFlagSet(regFlags, 0)) { \
         value1 = NUMBER_VAL((READ_BYTE() << 8) | operand); \
         printf("%d ", AS_NUMBER(value1)); \
       } else { \
@@ -89,6 +89,8 @@ char* opToStr(uint8_t opcode) {
     case EXA_TLT: return "TEST <"; break;
     case EXA_TGT: return "TEST >"; break;
     case EXA_JUMP: return "JUMP"; break;
+    case EXA_TJMP: return "TJMP"; break;
+    case EXA_FJMP: return "FJMP"; break;
     default: return "UNKNOWN"; break;
   }
 }
@@ -162,6 +164,36 @@ bool EXA_tick(EXA* exa) {
       }
       printf("Jumping by: %d\n", value);
       exa->ip = exa->instructions + value;
+      break;
+    }
+    case EXA_TJMP: {
+      // TJMP L -> TJMP N
+      int16_t operand1 = READ_BYTE();
+      int16_t value = (READ_BYTE() << 8) | operand1;
+      if (value < 0) {
+        value = 0;
+      } else if (value > 255) {
+        value = 255;
+      }
+      if (AS_NUMBER(exa->registers[REG_T]) == 1) {
+        printf("Jumping by: %d\n", value);
+        exa->ip = exa->instructions + value;
+      }
+      break;
+    }
+    case EXA_FJMP: {
+      // FJMP L -> FJMP N
+      int16_t operand1 = READ_BYTE();
+      int16_t value = (READ_BYTE() << 8) | operand1;
+      if (value < 0) {
+        value = 0;
+      } else if (value > 255) {
+        value = 255;
+      }
+      if (AS_NUMBER(exa->registers[REG_T]) == 0) {
+        printf("Jumping by: %d\n", value);
+        exa->ip = exa->instructions + value;
+      }
       break;
     }
     case EXA_NOOP: break;
