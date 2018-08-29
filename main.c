@@ -5,6 +5,13 @@ uint8_t assembleOpcode(uint8_t opcode, uint8_t flags) {
   return (flags << 5) | opcode;
 }
 
+void assembleAndSetNumber(EXA* exa, int16_t value, uint8_t position) {
+  uint8_t byte1 = value & 0xFF;
+  uint8_t byte2 = ((value & 0xFF00) >> 8);
+  exa->instructions[position] = byte1;
+  exa->instructions[position+1] = byte2;
+}
+
 int main() {
   EXA exa;
   EXA_init(&exa, "XA");
@@ -18,41 +25,34 @@ int main() {
   printf("%d\n", AS_NUMBER(exa.registers[REG_X]));
 
   exa.instructions[0] = assembleOpcode(EXA_COPY, 1);
-  exa.instructions[1] = 42;
-  exa.instructions[2] = 0;
+  assembleAndSetNumber(&exa, 42, 1);
   exa.instructions[3] = REG_X;
 
   exa.instructions[4] = assembleOpcode(EXA_JUMP, 0);
-  int16_t v = 7;
-  printf("%x\n", (int16_t)v);
-  exa.instructions[5] = (uint8_t)(v & 0xFF);
-  exa.instructions[6] = (uint8_t)((v >> 8) & 0xFF);
+  assembleAndSetNumber(&exa, 7, 5);
 
   exa.instructions[7] = assembleOpcode(EXA_COPY, 0);
   exa.instructions[8] = REG_X;
   exa.instructions[9] = REG_T;
 
-  exa.instructions[10] = assembleOpcode(EXA_NOOP, 1);
+  exa.instructions[10] = assembleOpcode(EXA_MULI, 7);
+  assembleAndSetNumber(&exa, 42, 11);
+  assembleAndSetNumber(&exa, 3, 13);
+  exa.instructions[15] = REG_X;
+  exa.instructions[16] = assembleOpcode(EXA_ADDI, 0);
+  exa.instructions[17] = REG_X;
+  exa.instructions[18] = REG_X;
+  exa.instructions[19] = REG_X;
 
-
-  printf("0x%x\n", exa.instructions[3]);
-  printf("0x%x\n", exa.instructions[4]);
-  printf("0x%x\n", exa.instructions[5]);
-
+  exa.instructions[20] = assembleOpcode(EXA_HALT, 1);
 
   bool alive = true;
   while (alive) {
     alive = EXA_tick(&exa);
+    // TODO: Handle context changes (file, memory)
   }
 
-
-  printf("%s\n", exa.name);
-  printf("X: %d\n", AS_NUMBER(exa.registers[REG_X]));
-  printf("T: %d\n", AS_NUMBER(exa.registers[REG_T]));
-  printf("M: %d\n", AS_NUMBER(exa.registers[REG_M]));
-  printf("F: %d\n", AS_NUMBER(exa.registers[REG_F]));
-
-
+  EXA_dumpState(&exa);
   return 0;
 }
 

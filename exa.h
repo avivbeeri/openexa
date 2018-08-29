@@ -9,6 +9,11 @@ typedef enum {
   EXA_HALT,
   EXA_NOOP,
   EXA_COPY,
+  EXA_ADDI,
+  EXA_MULI,
+  EXA_SUBI,
+  EXA_DIVI,
+  EXA_MODI,
   EXA_JUMP
 } InstructionSet;
 
@@ -56,6 +61,7 @@ typedef struct {
   char name[9];
   // Instruction pointer (assuming a total of 255 instrunctions (final is always HALT)
   uint8_t* ip;
+
   Value registers[4];
   // X: General purpose register
   // T: General purpose register, stores result of TEST and criterion of TJMP/FJMP
